@@ -1,0 +1,61 @@
+# Game art is always included, even when an enclosing directory's ignore rules exclude
+# images. `railway up` honours .gitignore, and without these negations the assets once
+# never reached the Railway build context and the web export failed with
+# "Failed loading resource: res://Assets/background.jpg".
+#
+# These are deliberately STRUCTURAL, not a list of the files that exist today. An enumerated
+# form (!Assets/*.png) misses any image in a subfolder or outside Assets/, and `!` does not
+# cross a `/`. Adding Assets/particles/spark.png would then fail on Railway and pass locally,
+# which is the exact incident this file exists to prevent.
+!**/*.png
+!**/*.jpg
+!**/*.jpeg
+!**/*.gif
+!**/*.svg
+!**/*.webp
+
+# Every hidden folder at the root (tool caches, editor settings) stays out,
+# except .github/, where workflows live. Build output too. Never committed,
+# never uploaded.
+/.*/
+!/.github/
+build/
+export_presets.cfg
+
+# The single-player build this replaced. Kept for reference, never shipped:
+# `railway up` honours this file, so anything here stays out of the upload.
+archives/
+node_modules/
+
+# The brand kit. Reference material, not shipped: the mark lives in
+# brand/ and tools/build-brand.py renders it. `railway up` honours this file, so
+# without the line the zip and the design canvas ride into every deploy.
+# Listed BEFORE the screenshots note for the same reason it gives: an excluded
+# directory is never descended into, so the !**/*.png negations above cannot
+# rescue anything inside it, which is exactly what we want here.
+Branding/
+
+# 11 MB of proof screenshots. .dockerignore already keeps them out of the image,
+# but `railway up` honours THIS file, so without the line they were uploaded on
+# every single deploy for nothing. Listed after the image negations on purpose:
+# an excluded directory is never descended into, so `!**/*.png` cannot rescue it.
+verification/
+
+# Secrets. This folder is a git repository of its own, so no enclosing directory's
+# `.env` rule reaches it: without these lines a local .env would commit.
+.env
+.env.*
+!.env.example
+
+# Python caches from tools/, a local venv, and logs from local runs.
+__pycache__/
+*.pyc
+.venv/
+*.log
+
+# Local notes. Never published, never uploaded.
+md files/
+
+# OS clutter.
+.DS_Store
+Thumbs.db

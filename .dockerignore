@@ -1,0 +1,19 @@
+md files/
+# The brand kit: a 234 KB zip, a 78 KB design canvas and the PNGs the
+# project shipped BEFORE the mark. Reference only: tools/build-brand.py carries its
+# values by hand and reads nothing from it, so neither the image nor a clone needs it.
+Branding/
+# brand/ is a game resource folder, so anything dropped in it is packed into
+# the game download AND published under /brand/. Only the mark's own files go
+# in; a social header or any other design export stays out of the image.
+brand/*
+!brand/agaripo-*
+verification/
+# No markdown goes into the image.
+*.md
+# Hidden files and folders at the root: git, tool caches, local env files.
+.*
+build/
+archives/
+server/node_modules/
+node_modules/

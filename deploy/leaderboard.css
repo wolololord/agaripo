@@ -1,0 +1,191 @@
+/* =============================================================================
+ * THE GLOBAL LEADERBOARD PAGE
+ *
+ * Every colour, radius and type size here is a token out of login.css, which
+ * this page loads first. Nothing is redefined: a second copy of #4E50C0 in a
+ * second file is a second thing to forget when the palette moves.
+ *
+ * 🔴 NO ANIMATION. Not on load, not on hover, not on the rows. A table of
+ * numbers that fades and slides reads as generated, and this one is meant to
+ * read as a record. The only motion on the page is the scrollbar.
+ *
+ * 🔴 The white-on-dark rule from login.css applies to the header: --brand
+ * (#6264D9) is a FILL, never a glyph. On the dark stage the light text is #fff
+ * and #A9ABF0, both measured below.
+ * ========================================================================== */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0 16px 40px;
+  color: #fff;
+  font: 400 14px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* The login card's own stage, so opening this page from the game is not a
+     change of product.
+     🔴 background-color FIRST and as its own property. A gradient has a finite
+     height and this page does not: with only the gradients, everything below
+     them painted white and the light footer text vanished into it. And
+     `fixed` written inside the shorthand binds to the LAST layer only, so the
+     radial highlight scrolled away from the linear one underneath it. */
+  background-color: #101132;
+  background-image:
+    radial-gradient(1100px 620px at 50% -10%, #2a2c7a 0%, rgba(42,44,122,0) 62%),
+    linear-gradient(160deg, #0d0e33 0%, #1b1d55 55%, #101132 100%);
+  background-attachment: fixed, fixed;
+  background-repeat: no-repeat, no-repeat;
+}
+
+/* --- header ---------------------------------------------------------------- */
+#lb-head {
+  max-width: 980px; margin: 0 auto; padding: 34px 0 22px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 18px;
+}
+#lb-brand { text-decoration: none; }
+#lb-head #ipo-wordmark { margin: 0; font-size: 32px; }
+#lb-sub {
+  flex: 1 1 260px; margin: 0;
+  /* #A9ABF0, the brand kit's dark-ground value for the accent, and the lightest
+     thing on this page that is text. Measured in the browser against what is
+     actually behind it (the radial highlight over #0D0E33, not a token):
+     8.51:1. #131545 appears nowhere in this project and was never the ground. */
+  color: #a9abf0; font-size: 14px;
+}
+#lb-play {
+  flex: 0 0 auto; text-decoration: none; color: #fff; font-weight: 700; font-size: 13px;
+  padding: 9px 18px; border-radius: 9999px;
+  /* The card's Go public gradient, verbatim. It runs #6264D9 to #4E50C0, so the
+     WORST pixel under the label is white on #6264D9 at 4.83:1 and the best is
+     6.50:1; both pass AA at this weight and size. Saying "the ground is
+     --brand-2" would have been a nicer sentence and a false one. */
+  background: linear-gradient(180deg, #6264d9 0%, #4e50c0 100%);
+  border: 1px solid rgba(255,255,255,.18);
+}
+#lb-play:hover { background: #4e50c0; }
+
+/* --- panels ---------------------------------------------------------------- */
+#lb-main { max-width: 980px; margin: 0 auto; }
+.lb-panel {
+  background: #fff; color: var(--ink);
+  border-radius: var(--r-card); padding: 22px 22px 8px;
+  margin-bottom: 22px;
+  box-shadow: 0 20px 52px rgba(10,11,45,.45);
+}
+.lb-panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.lb-panel h2 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+.lb-note { margin: 0; font-size: 13px; color: var(--ink-4); }
+
+/* --- the totals strip ------------------------------------------------------ */
+#lb-totals {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  margin: 16px 0 4px; padding: 0;
+}
+#lb-totals > div {
+  flex: 1 1 130px; padding: 10px 14px;
+  background: var(--wash); border-radius: var(--r-ctl);
+}
+#lb-totals dt {
+  margin: 0 0 2px; font-size: 11px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--ink-4);
+}
+#lb-totals dd {
+  margin: 0; font-size: 18px; font-weight: 800;
+  letter-spacing: -.02em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- tables ---------------------------------------------------------------- */
+/* Its own scroller, so a wide row scrolls inside the panel instead of making
+   the whole page scroll sideways on a phone. */
+.lb-scroll { overflow-x: auto; margin: 14px -22px 0; padding: 0 22px 14px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th {
+  text-align: left; padding: 0 10px 8px 0; white-space: nowrap;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-4); border-bottom: 1px solid var(--line);
+}
+th.c-num, th.c-when { text-align: right; padding-right: 0; }
+/* 🔴 EVERY right-aligned column needs a gap from the one before it, not just
+   a number beside a number. Without the c-when half of this rule the history
+   table printed "12" acquisitions and "55m ago" as "1255m ago", and the
+   leaderboard's own headers read "ROUNDSLAST SEEN". Right-aligned columns
+   touch by default; there is no space character between two table cells. */
+th.c-num + th.c-num, td.c-num + td.c-num,
+th.c-num + th.c-when, td.c-num + td.c-when { padding-left: 14px; }
+td {
+  padding: 9px 10px 9px 0; border-bottom: 1px solid var(--line);
+  font-size: 14px; color: var(--ink-3); white-space: nowrap;
+}
+td.c-num, td.c-when { text-align: right; padding-right: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+
+/* The left padding is for the 3px rail your own row carries: without it the
+   rail is painted straight over the rank numeral. Set on the header too, or the
+   "#" and the numbers below it do not line up. */
+th.c-rank { padding-left: 10px; }
+td.c-rank {
+  width: 40px; padding-left: 10px;
+  color: var(--ink-4); font-size: 12px; font-weight: 700;
+}
+td.c-name { width: 99%; white-space: normal; }
+.lb-co { display: flex; align-items: center; gap: 9px; }
+.lb-co img {
+  flex: 0 0 auto; width: 24px; height: 24px; border-radius: 9999px; display: block;
+  background: var(--wash);
+  /* 🔴 A hairline, because every company mark in the pack is a dark glyph on a
+     WHITE disc. On the board that disc sits on a coloured ball and reads as a
+     badge; on a white table its edge disappears, and a mark that is a wide
+     wordmark rather than a symbol (SpaceX) was left as a faint smudge with no
+     disc around it. Drawn outside the box so it costs no pixels of artwork. */
+  box-shadow: 0 0 0 1px var(--line);
+}
+.lb-co b { font-weight: 700; color: var(--ink); font-size: 14px; }
+/* The player's name and tag on one line, the company they played as under it. */
+.lb-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.lb-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; }
+.lb-as { font-size: 12px; color: var(--ink-4); }
+/* Always shown now: a player name is not unique, and the tag, a hash of the
+   player id, is what tells two players with the same name apart. */
+.lb-tag {
+  font-size: 11px; color: var(--ink-4); font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.lb-big { font-weight: 800; color: var(--ink); }
+.lb-dim { color: var(--ink-4); }
+
+/* Your own rows. A tint and a rail, the same treatment the in-game leaderboard
+   gives your row, so the two panels agree about what "you" looks like. */
+tr.me td { background: var(--brand-wash); }
+tr.me td.c-rank { box-shadow: inset 3px 0 0 var(--brand); color: var(--brand-ink); }
+tr.me .lb-co b, tr.me .lb-big { color: var(--brand-ink); }
+/* 🔴 On .lb-co, NOT on the cell. .lb-co is display:flex and therefore a
+   block-level box, so a ::after on its parent <td> could only ever start on a
+   new line: the label sat under the company name and made your own row a line
+   taller than every other row. As a flex item it sits beside the name. */
+tr.me .lb-co::after {
+  content: "you"; flex: 0 0 auto;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--brand-ink);
+}
+
+.lb-wait td, .lb-empty td { color: var(--ink-4); font-size: 14px; padding: 18px 0; }
+
+/* --- footer ---------------------------------------------------------------- */
+#lb-foot {
+  max-width: 980px; margin: 0 auto; padding-top: 4px;
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  font-size: 12px; color: #a9abf0;
+}
+#lb-foot a { color: #fff; }
+
+@media (max-width: 620px) {
+  #lb-head { padding: 24px 0 18px; }
+  #lb-head #ipo-wordmark { font-size: 27px; }
+  .lb-panel { padding: 18px 16px 6px; }
+  .lb-scroll { margin: 12px -16px 0; padding: 0 16px 12px; }
+  /* The columns that are context rather than the answer. The high score is the
+     point of both tables and never drops. */
+  .c-drop { display: none; }
+}

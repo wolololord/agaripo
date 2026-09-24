@@ -1,0 +1,19 @@
+# LF in the repository and in every checkout. A Windows clone with
+# core.autocrlf=true would otherwise write CRLF, and a CRLF Dockerfile or shell
+# line breaks on the Linux builder.
+* text=auto eol=lf
+
+# Binary assets: never touched by line-ending conversion.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AgarIPO — global leaderboard</title>
+<meta name="description" content="Every round ever played of AgarIPO, ranked by the biggest company anyone built.">
+<!-- 🔴 The SAME login.css the game card uses, and not a copy of its tokens. The
+     wordmark at the top of this page is the wordmark on the login card, down to
+     the mask arithmetic in the O, because it is literally the same rule set. A
+     second stylesheet with the palette retyped into it is a second stylesheet
+     that drifts, and this project has already paid for that once. It is one
+     more file on a page with no WebAssembly, and it shares the game's cache. -->
+<link rel="stylesheet" href="login.css">
+<link rel="stylesheet" href="leaderboard.css">
+<link rel="icon" href="brand/agaripo-icon-64.png" sizes="64x64">
+<link rel="icon" href="brand/agaripo-icon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="brand/agaripo-icon-180.png">
+</head>
+<body class="on-dark">
+
+<header id="lb-head">
+  <a id="lb-brand" href="/">
+    <h1 id="ipo-wordmark"><span class="wm-a">Agar</span><span class="wm-b">IP</span><span class="wm-o" aria-hidden="true"></span><span class="wm-sr">O</span></h1>
+  </a>
+  <p id="lb-sub">Every round anyone has played, ranked by the biggest company they built.</p>
+  <a id="lb-play" href="/">Play a round</a>
+</header>
+
+<main id="lb-main">
+  <section class="lb-panel" aria-labelledby="lb-top-h">
+    <div class="lb-panel-head">
+      <h2 id="lb-top-h">Biggest unicorns</h2>
+      <p class="lb-note">One row per player: their best round.</p>
+    </div>
+    <dl id="lb-totals" aria-label="Totals"></dl>
+    <div class="lb-scroll">
+      <table id="lb-top">
+        <thead>
+          <tr>
+            <th scope="col" class="c-rank">#</th>
+            <th scope="col" class="c-name">Player</th>
+            <th scope="col" class="c-num">High score</th>
+            <th scope="col" class="c-num c-drop">Acquired</th>
+            <th scope="col" class="c-num c-drop">Rounds</th>
+            <th scope="col" class="c-when c-drop">Last seen</th>
+          </tr>
+        </thead>
+        <tbody><tr class="lb-wait"><td colspan="6">Loading the board…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="lb-panel" aria-labelledby="lb-all-h">
+    <div class="lb-panel-head">
+      <h2 id="lb-all-h">Every round played</h2>
+      <p class="lb-note">Newest first. <span id="lb-all-count"></span></p>
+    </div>
+    <div class="lb-scroll">
+      <table id="lb-all">
+        <thead>
+          <tr>
+            <th scope="col" class="c-name">Player</th>
+            <th scope="col" class="c-num">High score</th>
+            <th scope="col" class="c-num">Finished</th>
+            <th scope="col" class="c-num c-drop">Rank</th>
+            <th scope="col" class="c-num c-drop">Acquired</th>
+            <th scope="col" class="c-num c-drop">Played</th>
+            <th scope="col" class="c-when">When</th>
+          </tr>
+        </thead>
+        <tbody><tr class="lb-wait"><td colspan="7">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer id="lb-foot">
+  <span>Created for the Stocklana hackathon.</span>
+  <span>Trade tokenized pre-IPO stocks at <a href="https://prestocks.com" target="_blank" rel="noopener noreferrer">prestocks.com</a></span>
+</footer>
+
+<script src="leaderboard.js"></script>
+</body>
+</html>

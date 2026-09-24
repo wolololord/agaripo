@@ -1,0 +1,689 @@
+/* AgarIPO login overlay. Sits above the game canvas.
+   Nothing is paused: main.gd's _try_join simply returns until window.AGARIPO_PLAYER
+   appears, so no company exists on the server until Go public is pressed and there
+   is nothing behind the card to drift.
+
+   🔴 Every entrance here is a plain CSS animation with `backwards` fill, never a
+   class that JavaScript adds on a timer or an observer. Motion has to FAIL OPEN:
+   a reveal that waits on script leaves the card invisible when the script
+   hiccups, and an invisible login card is an unplayable game.
+
+   🔴 `backwards`, NOT `both`, and it was `both` and that was a bug. A finished
+   animation with a forwards fill keeps HOLDING its last keyframe, and an animated
+   value outranks every normal author declaration. Measured on the live page: with
+   `.out` applied, computed opacity stayed at 1, so the exit fade never ran and the
+   card snapped away instead. `#ipo-play:active` was dead for the same reason.
+   `backwards` holds only the FROM value, before the animation starts, which is all
+   an entrance ever needed.
+
+   🔴 The palette is prestocks.com's own, read off the live site on 2026-09-19
+   with getComputedStyle rather than picked by eye: Inter, #14154F headings,
+   #525252 body, #6A7271 muted, #6264D9 accent, and radii of 8px and 9999px.
+   The orange this file used to carry was ours and nobody else's, which is a
+   strange thing to wear to a sponsor's hackathon.
+
+   🔴 Contrast is measured, not eyeballed, and the accent has ONE trap in it:
+   #6264D9 is 4.83:1 on white and passes, but only 4.43:1 on the #F5F5F5 wash and
+   fails there. So indigo TEXT is always --brand-ink (#4E50C0, 6.50:1 on white),
+   and --brand itself is for fills, rings and borders. White on --brand is
+   4.83:1, which is why the button ground is the darker half of its gradient. */
+
+:root {
+  --ink: #14154f;      /* 16.80:1 on white. PreStocks' own heading navy */
+  --ink-2: #2a2c4a;    /* 13.48:1 */
+  --ink-3: #525252;    /*  7.81:1. PreStocks' body grey */
+  --ink-4: #6a7271;    /*  4.93:1 on white, 4.52:1 on the wash. The lightest text */
+  --faint: #929aa9;    /*  2.83:1. Rules and dividers ONLY, never text */
+  --line: #e5e7eb;
+  --wash: #f5f5f5;     /* PreStocks' surface grey */
+  --brand: #6264d9;    /* fills, rings and borders. White on it is 4.83:1 */
+  --brand-2: #4e50c0;  /* the darker half of the gradient. White on it is 6.50:1 */
+  --brand-ink: #4e50c0;/* 6.50:1 on white. Every indigo GLYPH is this, not --brand */
+  --brand-wash: #eef0fc;
+  --ok: #15803d;       /* 5.02:1 */
+  --bad: #b91c1c;      /* 6.47:1 */
+  --r-card: 16px;      /* PreStocks uses 8px and 9999px; 16px is its card radius */
+  --r-ctl: 8px;
+}
+
+#ipo-login {
+  position: fixed; inset: 0; z-index: 100; overflow-y: auto;
+  /* flex-start + margin:auto, NOT align-items:center: a centred flex item taller
+     than the viewport is clipped at the top with no way to scroll back to it. */
+  display: flex; align-items: flex-start; justify-content: center; padding: 28px 16px;
+  background:
+    radial-gradient(1100px 620px at 50% -10%, #2a2c7a 0%, rgba(42,44,122,0) 62%),
+    linear-gradient(160deg, #0d0e33 0%, #1b1d55 55%, #101132 100%);
+  /* Inter first: it is what prestocks.com renders in, and on a machine that has
+     it the card and the site are the same typeface for zero bytes. No webfont
+     request - the page already pulls 43 MB of WebAssembly and a blocking font
+     fetch on top of that is not a trade worth making. */
+  font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #e2e8f0;
+  animation: ipo-fade .34s ease backwards;
+}
+#ipo-login[hidden] { display: none !important; }
+#ipo-login.out { opacity: 0; transform: scale(1.012); transition: opacity .26s ease, transform .26s ease; }
+
+#ipo-card {
+  width: min(524px, 100%); margin: auto; background: #fff; color: var(--ink);
+  border-radius: var(--r-card); padding: 30px 30px 26px;
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset, 0 28px 70px rgba(10,11,45,.55);
+  animation: ipo-rise .5s cubic-bezier(.16,1,.3,1) backwards;
+}
+
+/* --- the wordmark --------------------------------------------------------- */
+/* Still real text, not an image: sharp at any zoom and no extra request on a
+   page that already pulls 43 MB of WebAssembly. What changed is the O. It used
+   to be the letter O inside "IPO", reversed out of an indigo tag; it is now the
+   MARK, drawn here in CSS from the same ratios tools/build-brand.py renders the
+   app icon from. The tab and the page are therefore literally the same drawing.
+
+   🔴 THE LOCKUP CARRIES role="img" aria-label="AgarIPO" (see login.js). The O
+   is no longer in the text stream, so without that label the product reads as
+   "AgarIP" to a screen reader and to anyone selecting the text.
+
+   🔴 Every indigo GLYPH is --brand-ink (#4E50C0, 6.50:1 on white), never
+   --brand (#6264D9): that one is 4.83:1 on white but 4.43:1 on the #F5F5F5
+   wash and fails there. This is the single trap in this palette. */
+#ipo-head { margin-bottom: 20px; }
+#ipo-wordmark {
+  /* No `gap`. The mark's own offset is margin-left on .wm-o, because the spacing
+     between "Agar" and "IP" is kerning and must stay at zero. */
+  display: flex; align-items: baseline;
+  margin: 0 0 8px; font-size: 36px; line-height: 1; letter-spacing: -.045em;
+  font-weight: 800; color: var(--ink);
+}
+.wm-a { color: var(--ink); }
+.wm-b { color: var(--brand-ink); }        /* the "IP" */
+
+/* The mark. Ring = .78em so it reads at about cap height, stroke = .23 of the
+   ring, the company going in = .326 of the ring with its centre ON the rim at
+   45 degrees, and a .223 bite about that same centre which cuts clean through
+   the stroke. The .06-ring gap left between the bite and the disc is what reads
+   as being eaten rather than as a dot beside a circle. */
+.wm-o {
+  position: relative; display: inline-block;
+  width: .78em; height: .78em; margin-left: .05em;
+}
+.wm-o::before {
+  content: ""; position: absolute; inset: 0;
+  border-radius: 50%; border: .1794em solid var(--brand-ink);
+  -webkit-mask-image: radial-gradient(circle at 84.44% 15.56%, transparent 0 .174em, #000 .18em);
+          mask-image: radial-gradient(circle at 84.44% 15.56%, transparent 0 .174em, #000 .18em);
+}
+.wm-o::after {
+  content: ""; position: absolute;
+  left: .5315em; top: -.0058em; width: .2543em; height: .2543em;
+  border-radius: 50%; background: var(--brand-ink);
+}
+/* The O, for anything that reads rather than looks: a screen reader, a text
+   selection, a copy to the clipboard. clip-path rather than display:none or
+   visibility:hidden, both of which would take it out of the accessibility tree
+   as well, which is the entire thing it is here to stay in. */
+.wm-sr {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+/* If the lockup is ever reversed out on the dark login ground. */
+.on-dark .wm-a, .on-dark .wm-b { color: #fff; }
+.on-dark .wm-o::before { border-color: #fff; }
+.on-dark .wm-o::after  { background: #fff; }
+#ipo-card p.sub { margin: 0; color: var(--ink-3); font-size: 14px; }
+
+/* --- numbered steps ------------------------------------------------------ */
+.ipo-step { margin-bottom: 20px; }
+.ipo-step h2 {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 11px; font-size: 13px; font-weight: 700;
+  text-transform: none; letter-spacing: 0; color: var(--ink-2);
+}
+.ipo-num {
+  display: grid; place-items: center; width: 21px; height: 21px; flex: 0 0 21px;
+  /* White is allowed here now and was not before: white on the old orange was
+     2.80:1 and a 12px bold numeral is not "large text", so it failed AA
+     outright. White on #6264D9 is 4.83:1 and passes at this size. */
+  border-radius: 50%; background: var(--brand); color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 1;
+}
+
+/* Each block arrives a beat after the one above it. Fixed delays, no observer. */
+#ipo-head        { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .04s backwards; }
+.ipo-step:nth-of-type(1) { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .10s backwards; }
+.ipo-step:nth-of-type(2) { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .16s backwards; }
+.ipo-step:nth-of-type(3) { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .19s backwards; }
+#ipo-play        { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .22s backwards; }
+#ipo-rules, #ipo-note { animation: ipo-step-in .44s cubic-bezier(.16,1,.3,1) .26s backwards; }
+
+/* --- inputs -------------------------------------------------------------- */
+#ipo-name, #ipo-search, .ipo-input {
+  width: 100%; box-sizing: border-box; padding: 12px 14px; font: inherit;
+  border: 1px solid #d3d6dd; border-radius: var(--r-ctl); background: #fff; color: inherit;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+#ipo-search { margin: 12px 0 9px; padding: 9px 12px; font-size: 13px; }
+#ipo-name::placeholder, #ipo-search::placeholder, .ipo-input::placeholder { color: var(--ink-4); }
+#ipo-name:focus, #ipo-search:focus, .ipo-input:focus {
+  outline: none; border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(98,100,217,.26);
+}
+
+/* --- step 1: the player ------------------------------------------------------ */
+#ipo-player-msg { font-size: 13px; color: var(--ink-4); margin-top: 6px; }
+#ipo-player-msg:empty { display: none; }
+#ipo-player-msg.err, #ipo-acct-msg.err { color: var(--bad); font-weight: 600; }
+#ipo-player-msg.ok, #ipo-acct-msg.ok { color: var(--ok); font-weight: 600; }
+#ipo-idrow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px;
+  margin-top: 10px; font-size: 13px; color: var(--ink-3);
+}
+/* The login key. Monospace and spaced, because it is written down and typed
+   back in. No user-select:all any more: it is shown as dots until asked for, and
+   one click on it would take the dots. Copy is the way to take it. */
+#ipo-id {
+  font: 700 14px/1.2 ui-monospace, "SFMono-Regular", Consolas, monospace;
+  letter-spacing: .06em; color: var(--ink); background: var(--wash);
+  border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px;
+}
+.ipo-fine { margin: 5px 0 0; font-size: 12px; color: var(--ink-4); }
+.ipo-fine-top { margin: 0 0 10px; }
+#ipo-acct-row { font-size: 13px; color: var(--ink-3); }
+#ipo-acct-row::before { content: "\00b7"; margin-right: 10px; color: var(--faint); }
+#ipo-acct-row b { color: var(--ink); }
+/* A button that reads as a link: the account actions are secondary to Go
+   public, and a row of buttons would compete with it. */
+.ipo-link {
+  padding: 0; border: 0; background: none; font: inherit; cursor: pointer;
+  color: var(--brand-ink); font-weight: 700;
+}
+.ipo-link:hover { text-decoration: underline; }
+.ipo-link:focus-visible { outline: none; border-radius: 4px; box-shadow: 0 0 0 3px rgba(98,100,217,.45); }
+
+/* 🔴 [hidden] with !important, the trap this file has fixed twice already: the
+   author `display` below would beat the UA rule and the panel would never close. */
+#ipo-acct[hidden], .ipo-acct-view[hidden], #ipo-swap[hidden] { display: none !important; }
+#ipo-acct {
+  margin-top: 12px; padding: 14px; border: 1px solid var(--line);
+  border-radius: var(--r-ctl); background: var(--wash);
+}
+#ipo-acct h3 { margin: 0 0 10px; font-size: 14px; font-weight: 800; color: var(--ink); }
+#ipo-acct .ipo-input { padding: 10px 12px; font-size: 14px; }
+.ipo-form + .ipo-form { margin-top: 12px; }
+.ipo-lbl { display: block; margin-bottom: 5px; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+.ipo-inline { display: flex; gap: 8px; margin-top: 8px; }
+.ipo-lbl + .ipo-inline { margin-top: 0; }
+.ipo-inline .ipo-input { flex: 1 1 auto; min-width: 0; }
+.ipo-btn2 {
+  flex: 0 0 auto; padding: 0 16px; border: 0; border-radius: var(--r-ctl); cursor: pointer;
+  /* White on #4E50C0 is 6.50:1. */
+  background: var(--brand-2); color: #fff; font: 700 14px/1 Inter, system-ui, sans-serif;
+}
+.ipo-btn2:hover:not(:disabled) { filter: brightness(1.1); }
+.ipo-btn2:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(98,100,217,.5); }
+.ipo-btn2:disabled { background: #d3d6dd; cursor: wait; }
+#ipo-acct-msg { margin: 10px 0 0; font-size: 13px; }
+#ipo-acct-msg:empty { display: none; }
+#ipo-acct-close { margin-top: 10px; font-size: 13px; }
+
+/* --- the mark preview ---------------------------------------------------- */
+#ipo-markrow { display: flex; gap: 14px; align-items: center; margin-top: 14px; }
+#ipo-preview {
+  width: 62px; height: 62px; border-radius: 50%; flex: 0 0 62px;
+  /* The ground behind a mark with transparency, and what shows for the half
+     second before the default mark's PNG has loaded. */
+  background: #e8edf3 center/cover no-repeat;
+  background-image: url("brand/agaripo-default.png");
+  /* The ring is set once, at line ~221 in the step-state block. A box-shadow
+     here would be overwritten wholesale by it and read as the live value. */
+}
+#ipo-preview.pop { animation: ipo-pop .42s cubic-bezier(.2,1.5,.35,1) backwards; }
+#ipo-marktext { min-width: 0; }
+#ipo-status { font-size: 13px; color: var(--ink-4); }
+#ipo-status.err { color: var(--bad); font-weight: 600; }
+#ipo-status.ok  { color: var(--ok); font-weight: 600; }
+
+/* --- the company grid ---------------------------------------------------- */
+#ipo-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 6px; max-height: 234px; overflow-y: auto; padding: 8px;
+  border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--wash);
+  scrollbar-width: thin;
+}
+#ipo-grid.empty::after {
+  content: "No company by that name. Upload your own logo below.";
+  grid-column: 1 / -1; padding: 16px 8px; text-align: center;
+  font-size: 12.5px; color: var(--ink-4);
+}
+/* The name lives UNDER the mark, so the grid reads as a list of companies rather
+   than a wall of anonymous circles. A title attribute alone was not enough: most
+   of these are pre-IPO startups nobody recognises from the mark. */
+.ipo-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 2px; border: 0; background: none; cursor: pointer;
+  border-radius: var(--r-ctl); font: inherit;
+  transition: transform .16s cubic-bezier(.2,1.4,.4,1), background .16s ease, box-shadow .16s ease;
+}
+.ipo-tile img {
+  width: 46px; height: 46px; display: block; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(2,6,23,.14);
+}
+.ipo-tile-name {
+  /* 11px, not 10. 10 measured 7.24:1 and passed contrast, and contrast is not
+     the whole of legibility: for dyslexic readers small type is a defect on its
+     own. The name ellipsises sooner and the full one stays on the title. */
+  font-size: 11px; line-height: 1.25; color: var(--ink-3); text-align: center;
+  width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ipo-tile:hover { transform: translateY(-2px); background: #fff; }
+.ipo-tile:hover .ipo-tile-name { color: var(--ink-2); }
+.ipo-tile:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(98,100,217,.55); }
+.ipo-tile.on { background: var(--brand-wash); box-shadow: 0 0 0 2px var(--brand); }
+/* 🔴 The search filter sets el.hidden, and the UA rule `[hidden]{display:none}`
+   carries NO !important, so the author `display: flex` above beat it and typing
+   in the box hid nothing at all: all 119 tiles stayed on screen under a "no
+   company by that name" message. The same trap is handled once at the top of
+   this file for #ipo-login and was not generalised. It is now. */
+.ipo-tile[hidden] { display: none !important; }
+.ipo-tile.on .ipo-tile-name { color: var(--brand-ink); font-weight: 700; }
+#ipo-preview { box-shadow: 0 0 0 3px var(--brand), 0 4px 14px rgba(10,11,45,.16); }
+
+/* --- the upload zone ------------------------------------------------------ */
+/* The picker is the input ITSELF, stretched invisibly over the whole drop zone.
+   No label-for, no JS .click() proxy: both of those failed in the wild. */
+#ipo-drop {
+  position: relative; margin-top: 12px;
+  border: 1.5px dashed #d3d6dd; border-radius: var(--r-ctl); padding: 14px 12px;
+  text-align: center; background: var(--wash);
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+#ipo-drop:hover, #ipo-drop.over { border-color: var(--brand); background: var(--brand-wash); }
+#ipo-drop.over { transform: scale(1.015); }
+.ipo-dropmain { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink-2); }
+.ipo-dropfine { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-4); }
+#ipo-file {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer; font-size: 0;
+}
+#ipo-file:focus-visible ~ .ipo-dropmain { text-decoration: underline; }
+
+/* --- go ------------------------------------------------------------------- */
+#ipo-play {
+  margin-top: 4px; width: 100%; padding: 15px; font-size: 16px; font-weight: 800;
+  letter-spacing: -.01em; color: #fff; border: 0; border-radius: var(--r-ctl); cursor: pointer;
+  background: linear-gradient(180deg, #6264d9 0%, #4e50c0 100%);
+  box-shadow: 0 6px 18px rgba(78,80,192,.34);
+  transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+}
+#ipo-play:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 9px 24px rgba(78,80,192,.42); }
+#ipo-play:active:not(:disabled) { transform: scale(.985); box-shadow: 0 3px 10px rgba(78,80,192,.32); }
+#ipo-play:focus-visible { outline: none; box-shadow: 0 0 0 4px rgba(98,100,217,.5); }
+#ipo-play:disabled { background: #d3d6dd; box-shadow: none; cursor: not-allowed; color: #f8fafc; }
+
+#ipo-rules { margin: 18px 0 0; padding: 0 0 0 18px; font-size: 12.5px; color: var(--ink-3); }
+#ipo-rules li { margin: 4px 0; }
+#ipo-note { margin: 14px 0 0; font-size: 11.5px; color: var(--ink-4); }
+
+/* --- motion --------------------------------------------------------------- */
+@keyframes ipo-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes ipo-rise {
+  from { opacity: 0; transform: translateY(16px) scale(.985) }
+  to   { opacity: 1; transform: none }
+}
+@keyframes ipo-step-in {
+  from { opacity: 0; transform: translateY(9px) }
+  to   { opacity: 1; transform: none }
+}
+@keyframes ipo-pop {
+  0%   { transform: scale(.72) }
+  62%  { transform: scale(1.07) }
+  100% { transform: scale(1) }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ipo-login, #ipo-card, #ipo-head, .ipo-step, #ipo-play, #ipo-rules, #ipo-note,
+  #ipo-preview.pop { animation: none !important; }
+  /* Scoped to the card. A bare `*` would also reach the game's own canvas and any
+     shell element, which this stylesheet has no business touching. */
+  #ipo-login, #ipo-login * { transition-duration: .01ms !important; }
+}
+
+/* 🔴 Go public has to be on screen without scrolling on a 900 px laptop, and
+   the player step pushed it to 1001 px (it was 806 before that step existed,
+   measured on the live card at 1440x900). The grid scrolls and has a search box,
+   so it is what gives the height back on a short window. */
+@media (max-height: 1000px) {
+  #ipo-grid { max-height: 118px; }
+  #ipo-drop { padding: 10px 12px; }
+  #ipo-preview { width: 52px; height: 52px; flex-basis: 52px; }
+}
+
+@media (max-width: 460px) {
+  #ipo-card { padding: 22px 18px 20px; border-radius: 12px; }
+  #ipo-wordmark { font-size: 29px; }
+  #ipo-grid { max-height: 196px; grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
+  /* The id, Show and Copy fill the line at this width, so the account links
+     take a line of their own, where a separator in front of them is noise. */
+  #ipo-acct-row { flex-basis: 100%; }
+  #ipo-acct-row::before { content: none; }
+}
+
+/* =============================================================================
+   THE CLOSING BELL AND THE ACQUISITION CARD
+   Both are DOM, driven from the game through window.AGARIPO_CLOSE / AGARIPO_DEAD.
+   They used to be draw_string calls on a scrim, which is why one of them was red
+   Impact on black: immediate-mode drawing has no layout engine, so a designed
+   card costs more there than it is worth when a real one is 40 lines of CSS.
+
+   🔴 Both carry [hidden] { display: none !important }. The UA rule has no
+   !important, so the author `display:flex` below would beat a plain el.hidden
+   and the card would never go away. That exact trap already cost this project
+   the company search once.
+   ========================================================================== */
+
+#ipo-end, #ipo-dead {
+  position: fixed; inset: 0; z-index: 90;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px 16px;
+  font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+#ipo-end[hidden], #ipo-dead[hidden] { display: none !important; }
+
+/* --- the closing bell ------------------------------------------------------ */
+#ipo-end {
+  background: rgba(13,14,51,.80);
+  animation: ipo-fade .3s ease backwards;
+  overflow-y: auto; align-items: flex-start;
+}
+#ipo-end-card {
+  width: min(470px, 100%); margin: auto; background: #fff; color: var(--ink);
+  border-radius: var(--r-card); padding: 24px 22px 18px;
+  box-shadow: 0 28px 70px rgba(10,11,45,.6);
+  animation: ipo-rise .46s cubic-bezier(.16,1,.3,1) backwards;
+  /* 🔴 Capped to the window, so the footer is ALWAYS on screen. Measured at
+     1440x900 with a full trophy case: the card was 926px and the prestocks.com
+     line sat 8px past the fold on a card that removes itself after ten seconds.
+     dvh second, so a phone's collapsing URL bar does not re-break it, and so an
+     old browser that has never heard of dvh keeps the vh rule. */
+  display: flex; flex-direction: column;
+  /* 🔴 border-box, and this file has no global box-sizing rule, which is exactly
+     how the cap silently missed by 42 px. The default content-box measures
+     max-height against the CONTENT alone, so a 860px cap on a card with 24 + 18
+     of vertical padding produced an 902px card, and the footer was still off
+     screen after the cap was added. Measured, not read: setting the cap to 500
+     produced a 542px card. */
+  box-sizing: border-box;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
+}
+/* The only part that scrolls. min-height:0 is load-bearing: a flex child's
+   default min-height is its content, so without it the region refuses to shrink
+   and the cap above does nothing at all. */
+#ipo-end-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  /* Room for the table's own 1px border and the row rails, which a clipping
+     overflow would otherwise shave. */
+  margin: 0 -2px; padding: 0 2px;
+  /* #ipo-grid on the login card already asks for this. One file, one answer. */
+  scrollbar-width: thin;
+}
+#ipo-end h2 {
+  margin: 0; font-size: 25px; font-weight: 800; letter-spacing: -.03em;
+  color: var(--ink);
+}
+#ipo-end-sub { margin: 5px 0 18px; font-size: 13.5px; color: var(--ink-3); }
+#ipo-end-sub b { color: var(--brand-ink); font-variant-numeric: tabular-nums; }
+
+/* Your own result, before the table, because it is the only row that is about
+   the person reading it. */
+#ipo-you-mark {
+  position: relative; width: 38px; height: 38px; flex: 0 0 38px;
+  border-radius: 50%; background: #fff center/cover no-repeat;
+  box-shadow: 0 0 0 1px rgba(98,100,217,.35);
+}
+#ipo-you {
+  display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
+  padding: 13px 14px; margin-bottom: 14px;
+  background: var(--brand-wash); border-radius: var(--r-ctl);
+  box-shadow: inset 0 0 0 1px rgba(98,100,217,.3);
+}
+/* 🔴 THE VALUATION IS THE HERO, and it was not. The card's biggest type used to
+   be the words "Market closed" at 25px against a 19px result, so a #1 finish and
+   a #106 finish rendered identically. The number a player screenshots is the
+   number, so it is 34px and everything else is a label around it. */
+#ipo-you-rank {
+  font-size: 13px; font-weight: 700; color: var(--brand-ink);
+  letter-spacing: 0; font-variant-numeric: tabular-nums;
+}
+#ipo-you-mid { min-width: 0; flex: 1 1 auto; }
+#ipo-you-name {
+  font-size: 14.5px; font-weight: 700; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* 🔴 --ink-3, NOT --ink-4, and that was a real AA failure. #6A7271 measures
+   4.52:1 on the #F5F5F5 wash, which is the number written at the top of this
+   file, but this text sits on --brand-wash #EEF0FC, where the SAME colour is
+   4.35:1 and fails. A token that passed on one ground was assumed to pass on
+   another and never re-measured. #525252 here is 6.89:1. */
+#ipo-you-of { font-size: 11.5px; color: var(--ink-3); }
+#ipo-you-val {
+  font-size: 34px; font-weight: 800; color: var(--ink);
+  letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums;
+}
+
+/* --- the table ------------------------------------------------------------ */
+/* prestocks.com's own products table: a muted header row on the wash, then one
+   row per company as [mark + bold name] on the left and the number hard right,
+   separated by hairlines rather than boxed in. */
+#ipo-table { border: 1px solid var(--line); border-radius: var(--r-ctl); overflow: hidden; }
+.ipo-hrow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; background: var(--wash);
+  /* 11px, not 10.5. This file argues its own 10-to-11 case at .ipo-tile-name and
+     then broke it here: small type is a defect on its own. */
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  color: var(--ink-4); text-transform: uppercase; border-bottom: 1px solid var(--line);
+}
+.ipo-row {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-top: 1px solid var(--line);
+}
+.ipo-row:first-child { border-top: 0; }
+/* The bar is the row's share of the leader's valuation, painted behind the text
+   rather than as a separate column, so the table still reads as a list.
+   🔴 It FADES OUT rather than ending on an edge, and that was a real finding off
+   the first render: a flat tint stopping mid-row drew a hard vertical line down
+   the middle of the table and the eye read the line instead of the numbers. */
+.ipo-bar {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--brand-wash) 0%, rgba(238,240,252,0) 100%);
+  pointer-events: none;
+}
+/* 🔴 A LEFT RAIL, not a tint. The old rgba(98,100,217,.10) over white lands on
+   about #EFF0FB, which is the bar tint #EEF0FC to within a rounding error, so
+   the player's own row became invisible the moment they reached the top ten. A
+   rail cannot be cancelled out by anything painted behind the text. */
+.ipo-row.me { background: rgba(98,100,217,.13); box-shadow: inset 3px 0 0 var(--brand); }
+.ipo-row.me .ipo-cname { color: var(--brand-ink); font-weight: 700; }
+.ipo-row.me .ipo-cval { color: var(--brand-ink); }
+.ipo-crank {
+  position: relative; width: 20px; flex: 0 0 20px; text-align: right;
+  font-size: 12.5px; font-weight: 700; color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+.ipo-cmark {
+  position: relative; width: 26px; height: 26px; flex: 0 0 26px;
+  border-radius: 50%; background: var(--wash) center/cover no-repeat;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.ipo-cname {
+  position: relative; flex: 1 1 auto; min-width: 0;
+  font-size: 13.5px; font-weight: 600; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ipo-cval {
+  position: relative; font-size: 13.5px; font-weight: 700; color: var(--ink-2);
+  letter-spacing: -.01em; font-variant-numeric: tabular-nums;
+}
+/* The header's mark cell is a SPACER, not a mark. Without this it inherits the
+   ring and the wash and renders as an empty grey circle above the logos. */
+.ipo-hrow .ipo-cmark { background: none; box-shadow: none; }
+#ipo-end-foot { flex: 0 0 auto; margin: 14px 0 0; font-size: 11.5px; color: var(--ink-4); text-align: center; line-height: 1.7; }
+#ipo-end-foot a { color: var(--brand-ink); font-weight: 600; text-decoration: none; }
+#ipo-end-foot a:hover { text-decoration: underline; }
+
+/* --- the acquisition card -------------------------------------------------- */
+/* 🔴 pointer-events: none on the whole layer. This card appears while the game
+   is still running underneath and the player refounds out of it on a timer; a
+   layer that swallowed the mouse would take the steering with it. */
+#ipo-dead {
+  background: rgba(13,14,51,.55);
+  pointer-events: none;
+  animation: ipo-fade .22s ease backwards;
+}
+#ipo-dead-card {
+  width: min(360px, 100%); background: #fff; color: var(--ink);
+  border-radius: var(--r-card); padding: 22px 22px 18px; text-align: center;
+  box-shadow: 0 24px 60px rgba(10,11,45,.55);
+  animation: ipo-rise .4s cubic-bezier(.16,1,.3,1) backwards;
+}
+#ipo-dead-mark {
+  width: 54px; height: 54px; margin: 0 auto 12px; border-radius: 50%;
+  background: var(--wash) center/cover no-repeat;
+  box-shadow: 0 0 0 3px var(--brand-wash), 0 4px 14px rgba(10,11,45,.16);
+}
+#ipo-dead h2 {
+  margin: 0 0 6px; font-size: 21px; font-weight: 800; letter-spacing: -.03em;
+  color: var(--ink);
+}
+#ipo-dead-line { margin: 0; font-size: 14px; color: var(--ink-3); }
+#ipo-dead-line b { color: var(--ink); font-weight: 700; }
+#ipo-dead-line i { color: var(--brand-ink); font-weight: 700; font-style: normal; }
+#ipo-dead-foot {
+  margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--ink-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ipo-end, #ipo-end-card, #ipo-dead, #ipo-dead-card { animation: none !important; }
+}
+
+@media (max-width: 460px) {
+  #ipo-end-card { padding: 20px 16px 16px; border-radius: 12px; }
+  #ipo-end h2 { font-size: 21px; }
+  .ipo-row, .ipo-hrow { padding-left: 9px; padding-right: 9px; gap: 8px; }
+  .ipo-cname { font-size: 12.5px; }
+  .ipo-cval { font-size: 12.5px; }
+}
+
+
+/* --- the footer, now two lines --------------------------------------------- */
+/* 🔴 The forgeglobal attribution is GONE, deliberately. Nominative use of a
+   company's own name and mark to identify that company needs no notice, and the
+   generated logos.js still carries the trademark line in its header where the
+   marks actually live. What is left is what a player wants: who made this, and
+   where the real thing is traded. */
+.ipo-note-l { display: block; }
+/* 🔴 #ipo-note #ipo-lb-link, not #ipo-lb-link. One id is (1,0,0) and loses to
+   the #ipo-note a rule below, which is (1,0,1): the link was never any bolder
+   than the prestocks.com link beside it. Specificity, not order. */
+#ipo-note a { text-decoration: none; font-weight: 600; }
+#ipo-note a:hover { text-decoration: underline; }
+#ipo-note #ipo-lb-link { font-weight: 700; }
+.ipo-note-l + .ipo-note-l { margin-top: 2px; }
+#ipo-note a { color: var(--brand-ink); font-weight: 600; }
+
+/* --- the end card: what you acquired --------------------------------------- */
+/* Chips, not a second table. The table above is the RESULT and is ordered; this
+   is a set with no order that matters, and giving it rows and a header would
+   have made the eye read two league tables and try to reconcile them. */
+#ipo-took { margin-top: 14px; flex: 0 0 auto; }
+#ipo-took-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 8px;
+}
+#ipo-took-title { font-size: 13px; font-weight: 700; color: var(--ink); }
+#ipo-took-count {
+  font-size: 12px; font-weight: 600; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+/* The chips take the overflow instead, inside their own box, where a cut row of
+   pills reads as "there are more" rather than as a broken layout. */
+#ipo-took-list {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  max-height: 92px; overflow-y: auto; scrollbar-width: thin;
+}
+.ipo-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 9px 4px 4px; border-radius: 9999px;
+  background: var(--wash); border: 1px solid var(--line);
+  font-size: 12px; line-height: 1.35; color: var(--ink);
+  max-width: 100%;
+}
+.ipo-chip-mark {
+  width: 18px; height: 18px; flex: 0 0 18px; border-radius: 50%;
+  background: #fff center/cover no-repeat;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.ipo-chip-n {
+  font-weight: 600; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* #525252 on the #F5F5F5 chip is 7.17:1, measured, not the 7.81:1 this file
+   quotes for the same ink on white. Different ground, different number. */
+.ipo-chip-v { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.ipo-chip.more {
+  padding: 4px 10px; color: var(--ink-3); font-weight: 600;
+  background: none; border-style: dashed;
+}
+.ipo-took-none { margin: 0; font-size: 12.5px; color: var(--ink-3); }
+
+/* --- the music control, bottom left ---------------------------------------- */
+/* 🔴 z-index 95: ABOVE the closing card at 90 and below the login card at 100.
+   A player has to be able to mute during the ten seconds the market is closed,
+   and must not see a floating speaker over the login card before any sound
+   exists to control. */
+#ipo-audio {
+  position: fixed; left: 14px; bottom: 14px; z-index: 95;
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px 5px 5px; border-radius: 9999px;
+  background: rgba(255,255,255,.95); border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(10,11,45,.12);
+}
+#ipo-audio[hidden] { display: none !important; }
+#ipo-audio-btn {
+  display: grid; place-items: center; width: 30px; height: 30px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer;
+  background: var(--brand-wash); color: var(--brand-ink);
+  transition: background .15s ease, color .15s ease;
+}
+#ipo-audio-btn:hover { background: #e2e5fa; }
+#ipo-audio-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(98,100,217,.45); }
+/* Muted reads as OFF at a glance: the badge goes grey, not just the icon.
+   #6A7271 on #F5F5F5 is 4.52:1, measured, which passes AA at this size. */
+#ipo-audio.off #ipo-audio-btn { background: var(--wash); color: var(--ink-4); }
+#ipo-audio svg path { transition: opacity .15s ease; }
+/* accent-color paints the filled track AND the thumb in one line, in every
+   browser that ships this game's WebAssembly. Forty lines of ::-webkit-slider-*
+   and ::-moz-range-* would buy a slightly different thumb radius. */
+#ipo-audio-vol {
+  width: 78px; height: 18px; margin: 0; cursor: pointer;
+  accent-color: var(--brand);
+}
+#ipo-audio-vol:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(98,100,217,.35); border-radius: 9999px; }
+
+@media (max-width: 430px) {
+  #ipo-audio { left: 10px; bottom: 10px; padding: 4px 10px 4px 4px; }
+  #ipo-audio-vol { width: 62px; }
+  /* 🔴 The pill is fixed to the corner and the closing card's footer is the
+     bottom line of a card that fills the screen, so at 390px they landed on top
+     of each other and the prestocks.com line was read through a speaker icon.
+     Seen in a screenshot at 390x844, not reasoned about. The card gives up the
+     bottom 62px; the cap has to give up the same or the card just grows back
+     into it. */
+  #ipo-end { padding-bottom: 62px; }
+  #ipo-end-card {
+    max-height: calc(100vh - 82px);
+    max-height: calc(100dvh - 82px);
+  }
+}

@@ -1,0 +1,46 @@
+AgarIPO Licence
+
+Copyright (c) 2026 Wolo (https://github.com/wolololord). All rights reserved.
+
+AgarIPO is not open source. This licence covers its code, art and documentation,
+in this repository and in every copy or build made from it ("the software").
+
+1. PreStocks may use it. Wolo grants PreStocks a non-exclusive, worldwide,
+   royalty-free licence to use, copy, modify, host and deploy the software for
+   the PreStocks platform's own business, and to have contractors do the same
+   on its behalf. PreStocks may not transfer or sublicense this licence to
+   anyone else. Every copy PreStocks makes or deploys must keep this file and
+   UPSTREAM-LICENSE with it.
+
+2. Nobody else may. Except as clauses 3 and 6 say, no one else may use, copy,
+   modify, host, deploy, distribute or sell the software, or any part of it,
+   without written permission from Wolo. Being able to read the source is not
+   permission.
+
+3. Playing needs no permission. Anyone may play AgarIPO in a web browser at a
+   site run by Wolo or by PreStocks.
+
+4. Who PreStocks is. "PreStocks" means the company or companies that ran the
+   PreStocks platform at https://prestocks.com on 23 September 2026, and any
+   entity that controls them, is controlled by them, or is under common control
+   with them. Control means holding more than half of the voting rights, or the
+   power to direct management.
+
+5. A signed agreement comes first. Where a signed written agreement between Wolo
+   and PreStocks conflicts with this file, the agreement prevails on that point.
+
+6. Other people's rights stay theirs.
+   - Parts that come from mbMayer's Agar.io-style template remain under the
+     MIT licence in UPSTREAM-LICENSE, and nothing here limits what it allows.
+     UPSTREAM.md in the repository says which parts those are.
+   - The game engine and the Node.js packages keep their own licences.
+   - Company names and logos belong to their owners. This licence grants no
+     rights in them.
+
+7. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+   EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+   OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.

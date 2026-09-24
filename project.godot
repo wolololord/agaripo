@@ -1,0 +1,51 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="AgarIPO"
+run/main_scene="res://Scenes/main.tscn"
+config/features=PackedStringArray("4.4", "GL Compatibility")
+; 🔴 A PNG, and the AIPO mark, not the engine's own logo. Overwriting the EXPORTED
+; index.icon.png was not enough and it was measured in a browser: the engine
+; replaces that link at runtime with a blob built from the PROJECT icon, so
+; the tab still showed the engine's logo a second after boot. This is the source
+; both the static link and that runtime blob come from.
+config/icon="res://icon.png"
+
+[display]
+
+window/dpi/allow_hidpi=false
+
+[input]
+
+MOUSE_BUTTON={
+"deadzone": 0.2,
+"events": [Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":false,"double_click":false,"script":null)
+, Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":2,"canceled":false,"pressed":false,"double_click":false,"script":null)
+]
+}
+
+[importer_defaults]
+
+; 🔴 Every logo in the pack is 256x256 and is drawn at about 50 px on a startup,
+; so without mipmaps it is point-sampled every fifth texel and sparkles as the
+; company moves. Set here rather than in 119 .import sidecars, which the engine
+; regenerates on every build anyway. The Dockerfile asserts that a generated
+; sidecar actually carries mipmaps/generate=true, because a silently-ignored key
+; here would be invisible until somebody noticed the shimmer.
+texture={
+"mipmaps/generate": true
+}
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
